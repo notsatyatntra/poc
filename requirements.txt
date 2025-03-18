@@ -1,0 +1,6 @@
+streamlit
+ollama
+chromadb
+crawl4ai
+duckduckgo_search
+langchain-community
