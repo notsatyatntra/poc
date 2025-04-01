@@ -4,3 +4,7 @@ chromadb
 crawl4ai
 duckduckgo_search
 langchain-community
+unstructured
+markdown
+langchain_ollama
+langchain_chromadb
