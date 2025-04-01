@@ -1,4 +1,5 @@
 from langchain_ollama import OllamaLLM
+import re
 
 system_prompt = """
 You are an AI assistant tasked with providing detailed answers based solely on the given context.
@@ -29,7 +30,7 @@ Important: Base your entire response solely on the information provided in the c
 """
 
 
-def call_llm(prompt: str, require_search: bool = True, context: str | None = None):
+def call_llm(prompt: str, context: str | None = None):
     """Calls the LLM model with the given prompt and optional context.
 
     Args:
@@ -43,7 +44,7 @@ def call_llm(prompt: str, require_search: bool = True, context: str | None = Non
     Returns:
         Generator[str, None, None]: A generator yielding response chunks
     """
-    if require_search:
+    if context:
         final_prompt = f"{system_prompt}\n\nContext: {context}\nQuestion: {prompt}"
     else:
         final_prompt = prompt
@@ -51,5 +52,6 @@ def call_llm(prompt: str, require_search: bool = True, context: str | None = Non
     client = OllamaLLM(model="deepseek-r1:14b", base_url="http://164.52.205.195:11434/")
     
     response = client.invoke(final_prompt)
+    response = re.sub(r'<think>.*?</think>\s*', '', response, flags=re.DOTALL)
     
     return response

@@ -4,7 +4,7 @@ from crawl4ai.content_filter_strategy import BM25ContentFilter
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from langchain.schema import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from util import check_robots_txt
+from backend.util import check_robots_txt
 
 def get_web_urls(search_term, num_results=10):
     """Perform a web search and return a list of URLs."""

@@ -1,18 +1,21 @@
 from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
+from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
 import chromadb
 from chromadb.config import Settings
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from util import normalize_url
+from backend.util import normalize_url
 import tempfile
 import os
 
 def get_vectorstore():
     """Initialize and return the Chroma vector store."""
-    embeddings = OllamaEmbeddings(model="nomic-embed-text:latest", base_url="http://localhost:11434")
+    embeddings = OllamaEmbeddingFunction(
+            url="http://localhost:11434/api/embeddings",
+            model_name="nomic-embed-text:latest",
+        )
     #chromadb
-    chroma_client = Chroma.PersistentClient(
+    chroma_client = chromadb.PersistentClient(
         path="./web-search-llm-db", settings=Settings(anonymized_telemetry=False)
     )
     return (
@@ -26,19 +29,27 @@ def get_vectorstore():
 
 def has_relevant_data(vectorstore, query, threshold=0.7):
     """Check if the vector store has relevant data for the query."""
-    results = vectorstore.similarity_search_with_score(query, k=1) # returns list of tuples
-    if results:
-        _, score = results[0]
-        return score < threshold  # Lower score = higher similarity
+    collection, _ = vectorstore
+    qresults = collection.query(query_texts=[query], n_results=10)
+    context = qresults.get("documents")[0]
+    # results = vectorstore.similarity_search_with_score(query, k=1) # returns list of tuples
+    if context:
+        # _, score = results[0]
+        return True
     return False
 
-def get_relevant_context(collection, query, n_results=10):
+def get_relevant_context(vectorstore, query):
     """Retrieve relevant context from the vector store."""
-    results = collection.similarity_search(query, k=n_results) # returns objects
-    return [doc.page_content for doc in results]
+    collection, _ = vectorstore
+    qresults = collection.query(query_texts=[query], n_results=10)
+    context = qresults.get("documents")[0]
+    return context
+    # results = collection.similarity_search(query, k=n_results) # returns objects
+    # return [doc.page_content for doc in results]
 
-def add_to_vector_database(collection, documents):
+def add_to_vector_database(vectorstore, documents):
     """Add documents to the vector store."""
+    collection, _ = vectorstore
     for result in documents:
         documents, metadatas, ids = [], [], []
 
