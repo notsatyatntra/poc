@@ -44,20 +44,11 @@ async def crawl_webpages(urls, prompt):
         results = await crawler.arun_many(urls, config=crawler_config)
         return results
 
-def process_crawl_results(results):
-    """Process crawl results into LangChain Document objects."""
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=100)
-    documents = []
-    for result in results:
-        if result.markdown_v2:
-            markdown_content = result.markdown_v2.fit_markdown
-            splits = text_splitter.split_text(markdown_content)
-            for split in splits:
-                documents.append(Document(page_content=split, metadata={"source": result.url}))
-    return documents
-
-async def search_and_crawl(query, num_results=10):
+async def search_and_crawl(query, num_results=10, urls = []):
     """Perform web search, crawl pages, and process into documents."""
+    if urls:
+        crawl_results = await crawl_webpages(urls, query)
+        return crawl_results
     urls = get_web_urls(query, num_results)
     crawl_results = await crawl_webpages(urls, query)
     return crawl_results

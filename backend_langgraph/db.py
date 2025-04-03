@@ -1,5 +1,5 @@
 from langchain_chroma import Chroma
-from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
+from langchain_core.documents import Document
 import chromadb
 from chromadb.config import Settings
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
@@ -7,51 +7,43 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from backend.util import normalize_url
 import tempfile
 import os
+from langchain_ollama import OllamaEmbeddings
+
 
 def get_vectorstore():
     """Initialize and return the Chroma vector store."""
-    embeddings = OllamaEmbeddingFunction(
-            url="http://localhost:11434/api/embeddings",
-            model_name="nomic-embed-text:latest",
-        )
-    #chromadb
-    chroma_client = chromadb.PersistentClient(
-        path="./web-search-llm-db", settings=Settings(anonymized_telemetry=False)
-    )
-    return (
-        chroma_client.get_or_create_collection(
-            name="web_llm",
-            embedding_function=embeddings,
-            metadata={"hnsw:space": "cosine"},
-        ),
-        chroma_client,
+    embeddings = OllamaEmbeddings(model="nomic-embed-text:latest")
+    return Chroma(
+        persist_directory="./web-search-llm-db",
+        collection_name="web_llm",
+        embedding_function=embeddings,
+        collection_metadata={"hnsw:space": "cosine"},
+        client_settings=Settings(anonymized_telemetry=False)
     )
 
-def has_relevant_data(vectorstore, query, threshold=0.7):
-    """Check if the vector store has relevant data for the query."""
-    collection, _ = vectorstore
-    qresults = collection.query(query_texts=[query], n_results=10)
-    context = qresults.get("documents")[0]
-    # results = vectorstore.similarity_search_with_score(query, k=1) # returns list of tuples
-    if context:
-        # _, score = results[0]
-        return True
+def has_relevant_data(vectorstore, query, web_search_count, threshold=0.7):
+    """"Check if the vector store has relevant data for the query."""
+    distance_threshold = 1 - threshold
+    results = vectorstore.similarity_search_with_score(query, k=10)
+    for doc, distance in results:
+        if distance <= distance_threshold:
+            print(doc)
+            return True
+    if  web_search_count>=2 :
+        return True       
     return False
 
-def get_relevant_context(vectorstore, query):
+def get_relevant_context(vectorstore, query, threshold=0.7):
     """Retrieve relevant context from the vector store."""
-    collection, _ = vectorstore
-    qresults = collection.query(query_texts=[query], n_results=10)
-    context = qresults.get("documents")[0]
+    distance_threshold = 1 - threshold
+    results = vectorstore.similarity_search_with_score(query, k=10)
+    context = [doc.page_content for doc, distance in results if distance <= distance_threshold]
     return context
-    # results = collection.similarity_search(query, k=n_results) # returns objects
-    # return [doc.page_content for doc in results]
 
 def add_to_vector_database(vectorstore, documents):
     """Add documents to the vector store."""
-    collection, _ = vectorstore
     for result in documents:
-        documents, metadatas, ids = [], [], []
+        documents_list, ids = [], []
 
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=400,
@@ -76,14 +68,9 @@ def add_to_vector_database(vectorstore, documents):
 
         if all_splits:
             for idx, split in enumerate(all_splits):
-                documents.append(split.page_content)
-                metadatas.append({"source": result.url})
+                documents_list.append(Document(page_content=split.page_content, metadata={"source": result.url}))
                 ids.append(f"{normalized_url}_{idx}")
 
-            print("Upsert collection: ", id(collection))
-            collection.upsert(
-                documents=documents,
-                metadatas=metadatas,
-                ids=ids,
-            )
+            vectorstore.add_documents(documents=documents_list, ids=ids)
+
     
