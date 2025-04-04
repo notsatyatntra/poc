@@ -5,6 +5,7 @@ from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from langchain.schema import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from backend.util import check_robots_txt
+import asyncio
 
 def get_web_urls(search_term, num_results=10):
     """Perform a web search and return a list of URLs."""
@@ -42,6 +43,8 @@ async def crawl_webpages(urls, prompt):
 
     async with AsyncWebCrawler(config=browser_config) as crawler:
         results = await crawler.arun_many(urls, config=crawler_config)
+        # print("\n📌 DEBUG: Raw Crawl Results:")
+        # print(results) 
         return results
 
 async def search_and_crawl(query, num_results=10, urls = []):
@@ -52,3 +55,7 @@ async def search_and_crawl(query, num_results=10, urls = []):
     urls = get_web_urls(query, num_results)
     crawl_results = await crawl_webpages(urls, query)
     return crawl_results
+
+if __name__ == "__main__":
+    query = "latest AI advancements"
+    asyncio.run(search_and_crawl("Camp", 10, ['https://campdilly.com/', 'https://campunity.in/']))

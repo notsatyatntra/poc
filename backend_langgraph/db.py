@@ -27,7 +27,7 @@ def has_relevant_data(vectorstore, query, web_search_count, threshold=0.7):
     results = vectorstore.similarity_search_with_score(query, k=10)
     for doc, distance in results:
         if distance <= distance_threshold:
-            print(doc)
+            # print(doc)
             return True
     if  web_search_count>=2 :
         return True       

@@ -108,11 +108,6 @@ def check_robots_txt(urls: list[str]) -> list[str]:
 
     return allowed_urls
 
-def is_valid_website(prompt: str) -> bool:
-    # Implement logic to check if prompt is a valid website URL.
-    # For now, return True if the prompt starts with "http" (as an example)
-    return prompt.startswith("http")
-
 def is_website_request(prompt):
     url_pattern_with_protocol = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
     
