@@ -78,7 +78,6 @@ def needs_context(prompt):
     response = call_llm(few_shot_prompt, require_search=False)
     return "needs context" not in response.lower()
     
-
 def normalize_url(url):
     normalized_url = (
         url.replace("https://", "")
